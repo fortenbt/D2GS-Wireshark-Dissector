@@ -24,7 +24,7 @@ jobs:
       matrix:
         cfg:
           - {name: 'packet-d2gs', os: 'debian12', prefix: 'linux', extension: '.so', architecture: 'x64'}
-          - {name: 'packet-d2gs', os: 'ubuntu20.04', prefix: 'linux', extension: '.so', architecture: 'x64'}
+          - {name: 'packet-d2gs', os: 'ubuntu24.04', prefix: 'linux', extension: '.so', architecture: 'x64'}
 
     container:
       image: fortenbt/wireshark-dev:${{ matrix.cfg.os }}
