@@ -23,10 +23,11 @@ jobs:
     strategy:
       matrix:
         cfg:
-          - {name: 'packet-d2gs', os: debian12, prefix: 'linux', extension: '.so', architecture: 'x64'}
+          - {name: 'packet-d2gs', os: 'debian12', prefix: 'linux', extension: '.so', architecture: 'x64'}
+          - {name: 'packet-d2gs', os: 'ubuntu20.04', prefix: 'linux', extension: '.so', architecture: 'x64'}
 
     container:
-      image: fortenbt/wireshark-dev:debian12
+      image: fortenbt/wireshark-dev:${{ matrix.cfg.os }}
 
     steps:
     - name: Check out
