@@ -14,7 +14,7 @@ env:
 
 jobs:
   build:
-    name: Build ${{ matrix.cfg.name }}${{ matrix.cfg.extension }}
+    name: Build ${{ matrix.cfg.name }}-${{ matrix.cfg.os }}${{ matrix.cfg.extension }}
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -45,5 +45,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.cfg.name }}${{ matrix.cfg.extension }}
+        name: ${{ matrix.cfg.name }}-${{ matrix.cfg.os }}${{ matrix.cfg.extension }}
         path: build/d2gs.so
