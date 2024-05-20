@@ -45,4 +45,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.cfg.name }}${{ matrix.cfg.extension }}
-        path: build/d2gs.so
+        path: ${{github.workspace}}/build/d2gs.so
