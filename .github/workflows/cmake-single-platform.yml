@@ -39,12 +39,10 @@ jobs:
 
     - name: Build
       # Build your program with the given configuration
-      run: |
-        cmake --build ${{ github.workspace }}/build --config ${{env.BUILD_TYPE}}
-        ls -al ${{ github.workspace }}/build
+      run: cmake --build ${{ github.workspace }}/build --config ${{env.BUILD_TYPE}}
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.cfg.name }}${{ matrix.cfg.extension }}
-        path: ${{ github.workspace }}/build/d2gs.so
+        path: build/d2gs.so
