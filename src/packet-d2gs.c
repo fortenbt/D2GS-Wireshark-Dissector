@@ -7,80 +7,88 @@
 #define VERSION "0.0.1"
 #endif
 
-static int proto_d2gs = -1;
+void proto_register_d2gs(void);
+void proto_reg_handoff_d2gs(void);
 
-static int hf_d2gs_type = -1;
-static int hf_createclientplayer_guid = -1;
-static int hf_createclientplayer_class = -1;
-static int hf_createclientplayer_name = -1;
-static int hf_createclientplayer_x = -1;
-static int hf_createclientplayer_y = -1;
+static dissector_handle_t d2gs_handle;
 
-static int hf_stateadd_unit = -1;
-static int hf_stateadd_guid = -1;
-static int hf_stateadd_streamlen = -1;
-static int hf_stateadd_streambytes = -1;
+#define D2GS_PORT 4000
+static range_t *tcp_port_range = (range_t*)"4000";
 
-static int hf_pip_unit = -1;
-static int hf_pip_guid = -1;
+static int proto_d2gs;
 
-static int hf_baseskill_amt = -1;
-static int hf_baseskill_playerid = -1;
-static int hf_baseskill_skill = -1;
-static int hf_baseskill_skilllvl = -1;
+static int hf_d2gs_type;
+static int hf_createclientplayer_guid;
+static int hf_createclientplayer_class;
+static int hf_createclientplayer_name;
+static int hf_createclientplayer_x;
+static int hf_createclientplayer_y;
 
-static int hf_updateitemskill_unk1 = -1;
-static int hf_updateitemskill_guid = -1;
-static int hf_updateitemskill_skill = -1;
-static int hf_updateitemskill_amt = -1;
-static int hf_updateitemskill_unk2 = -1;
+static int hf_stateadd_unit;
+static int hf_stateadd_guid;
+static int hf_stateadd_streamlen;
+static int hf_stateadd_streambytes;
 
-static int hf_updateitemoskill_unk1 = -1;
-static int hf_updateitemoskill_guid = -1;
-static int hf_updateitemoskill_skill = -1;
-static int hf_updateitemoskill_baselevel = -1;
-static int hf_updateitemoskill_bonusamt = -1;
-static int hf_updateitemoskill_unk2 = -1;
+static int hf_pip_unit;
+static int hf_pip_guid;
 
-static int hf_setskill_unit = -1;
-static int hf_setskill_guid = -1;
-static int hf_setskill_hand = -1;
-static int hf_setskill_skill = -1;
-static int hf_setskill_unk1 = -1;
+static int hf_baseskill_amt;
+static int hf_baseskill_playerid;
+static int hf_baseskill_skill;
+static int hf_baseskill_skilllvl;
 
-static int hf_unknown13_array = -1;
+static int hf_updateitemskill_unk1;
+static int hf_updateitemskill_guid;
+static int hf_updateitemskill_skill;
+static int hf_updateitemskill_amt;
+static int hf_updateitemskill_unk2;
 
-static int hf_questinfo_array = -1;
+static int hf_updateitemoskill_unk1;
+static int hf_updateitemoskill_guid;
+static int hf_updateitemoskill_skill;
+static int hf_updateitemoskill_baselevel;
+static int hf_updateitemoskill_bonusamt;
+static int hf_updateitemoskill_unk2;
 
-static int hf_gamequestinfo_array = -1;
+static int hf_setskill_unit;
+static int hf_setskill_guid;
+static int hf_setskill_hand;
+static int hf_setskill_skill;
+static int hf_setskill_unk1;
 
-static int hf_gamehandshake_unit = -1;
-static int hf_gamehandshake_guid = -1;
+static int hf_unknown13_array;
 
-static int hf_unknown14_array = -1;
+static int hf_questinfo_array;
 
-static int hf_setbyteattr_attr = -1;
-static int hf_setbyteattr_amt = -1;
+static int hf_gamequestinfo_array;
 
-static int hf_setwordattr_attr = -1;
-static int hf_setwordattr_amt = -1;
+static int hf_gamehandshake_unit;
+static int hf_gamehandshake_guid;
 
-static int hf_itemactionworld_entity = -1;
-static int hf_itemactionworld_arraylen = -1;
-static int hf_itemactionworld_array = -1;
+static int hf_unknown14_array;
 
-static int hf_itemactionowned_unknown1 = -1;
-static int hf_itemactionowned_arraylen = -1;
-static int hf_itemactionowned_array = -1;
+static int hf_setbyteattr_attr;
+static int hf_setbyteattr_amt;
 
-static int hf_lamu_fields = -1;
-static int hf_lamu_fields2 = -1;
-static int hf_lamu_life = -1;
-static int hf_lamu_mana = -1;
-static int hf_lamu_stamina = -1;
-static int hf_lamu_x = -1;
-static int hf_lamu_y = -1;
-static int hf_lamu_unk = -1;
+static int hf_setwordattr_attr;
+static int hf_setwordattr_amt;
+
+static int hf_itemactionworld_entity;
+static int hf_itemactionworld_arraylen;
+static int hf_itemactionworld_array;
+
+static int hf_itemactionowned_unknown1;
+static int hf_itemactionowned_arraylen;
+static int hf_itemactionowned_array;
+
+static int hf_lamu_fields;
+static int hf_lamu_fields2;
+static int hf_lamu_life;
+static int hf_lamu_mana;
+static int hf_lamu_stamina;
+static int hf_lamu_x;
+static int hf_lamu_y;
+static int hf_lamu_unk;
 
 static int * const lamu_fields[] = {
     &hf_lamu_life,
@@ -93,25 +101,17 @@ static int * const lamu_fields2[] = {
     &hf_lamu_unk,
 };
 
-static int hf_loadact_act = -1;
-static int hf_loadact_drlg_seed = -1;
-static int hf_loadact_area = -1;
-static int hf_loadact_obj_seed = -1;
+static int hf_loadact_act;
+static int hf_loadact_drlg_seed;
+static int hf_loadact_area;
+static int hf_loadact_obj_seed;
 
-static gint ett_d2gs = -1;
-static gint ett_cmd = -1;
-static gint ett_stream = -1;
-static gint ett_array = -1;
-static gint ett_skill = -1;
-static gint ett_lamu_fields = -1;
-
-#define D2GS_PORT "4000"
-static range_t *tcp_port_range = (range_t*)D2GS_PORT;
-
-WS_DLL_PUBLIC_DEF const gchar plugin_version[] = VERSION;
-WS_DLL_PUBLIC_DEF const int plugin_want_major = WIRESHARK_VERSION_MAJOR;
-WS_DLL_PUBLIC_DEF const int plugin_want_minor = WIRESHARK_VERSION_MINOR;
-WS_DLL_PUBLIC void plugin_register(void);
+static gint ett_d2gs;
+static gint ett_cmd;
+static gint ett_stream;
+static gint ett_array;
+static gint ett_skill;
+static gint ett_lamu_fields;
 
 static const value_string d2gs_stypes[] = {
     { D2GS_GAMELOADING, "D2GS_GAMELOADING" },
@@ -328,7 +328,7 @@ static int dissect_d2gs_s_to_c(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tr
     guint offset = 0;
     gint num_pkts = 0;
     while (offset < total_len) {
-        guint8 type = tvb_get_guint8(tvb, offset);
+        uint8_t type = tvb_get_gint8(tvb, offset);
         tvbuff_t *nexttvb = tvb_new_subset_remaining(tvb, offset);
         num_pkts++;
 
@@ -648,34 +648,12 @@ void proto_register_d2gs(void)
 
     proto_d2gs = proto_register_protocol("D2GS Protocol", "D2GS", "d2gs");
     proto_register_field_array(proto_d2gs, hf, array_length(hf));
-
     proto_register_subtree_array(ett, array_length(ett));
-}
-
-static void proto_reg_handoff_d2gs(void)
-{
-    static dissector_handle_t d2gs_handle;
-
-    d2gs_handle = create_dissector_handle(dissect_d2gs, proto_d2gs);
-    dissector_add_uint_range_with_preference("tcp.port", D2GS_PORT, d2gs_handle);
+    d2gs_handle = register_dissector("d2gs", dissect_d2gs, proto_d2gs);
 }
 
 void
-plugin_register(void)
+proto_reg_handoff_d2gs(void)
 {
-    static proto_plugin plug;
-
-    plug.register_protoinfo = proto_register_d2gs;
-    plug.register_handoff = proto_reg_handoff_d2gs; /* or NULL */
-    proto_register_plugin(&plug);
-
-    //reassembly_table_register(&emblc_reassembly, &addresses_ports_reassembly_table_functions);
-
-    /*
-    for (unsigned i = 0; i < array_length(m_subprotos); i++) {
-        if (m_subprotos[i]->register_reassembly) {
-            m_subprotos[i]->register_reassembly();
-        }
-    }
-    */
+    dissector_add_uint_with_preference("tcp.port", D2GS_PORT, d2gs_handle);
 }

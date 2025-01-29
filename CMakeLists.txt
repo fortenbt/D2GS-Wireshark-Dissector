@@ -7,69 +7,56 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 
-cmake_minimum_required(VERSION 3.12)
-cmake_policy(SET CMP0048 NEW)
+include(WiresharkPlugin)
 
-project(D2GS VERSION 0.0.1 DESCRIPTION "Wireshark D2GS Plugin" LANGUAGES C)
+# Plugin name and version info (major minor micro extra)
+set_module_info(d2gs 0 0 4 0)
 
-find_package(Wireshark CONFIG REQUIRED)
+aux_source_directory(src/ DISSECTOR_SRC)
 
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	set(CMAKE_INSTALL_PREFIX "${Wireshark_INSTALL_PREFIX}"
-		CACHE PATH "Installation prefix" FORCE
-	)
-endif()
-
-if(NOT Wireshark_PLUGINS_ENABLED)
-	message(WARNING "Wireshark was compiled without support for plugins")
-endif()
-
-# External plugins must define HAVE_SSIZE_T for the plugin toolchain.
-include(CheckTypeSize)
-check_type_size("ssize_t" SSIZE_T)
-
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_C_FLAGS  "-Wall -Wextra -Werror ${CMAKE_C_FLAGS}")
-endif()
-
-add_compile_definitions(
-	VERSION=\"${PROJECT_VERSION}\"
-	$<$<BOOL:${HAVE_SSIZE_T}>:HAVE_SSIZE_T>
+set(PLUGIN_FILES
+	plugin.c
+	${DISSECTOR_SRC}
 )
 
-AUX_SOURCE_DIRECTORY(src/ D2GS_SOURCES)
-add_library(d2gs MODULE ${D2GS_SOURCES})
-set_target_properties(d2gs PROPERTIES PREFIX "" DEFINE_SYMBOL "")
+set_source_files_properties(
+	${PLUGIN_FILES}
+	PROPERTIES
+	COMPILE_FLAGS "${WERROR_COMMON_FLAGS}"
+)
+
+register_plugin_files(plugin.c
+	plugin
+	${DISSECTOR_SRC}
+)
+
+add_wireshark_plugin_library(d2gs epan)
+
 target_link_libraries(d2gs epan)
 
-# This is the normal installation target to CMAKE_INSTALL_PREFIX. It is relocatable
-# using DESTDIR or cmake --install. By default CMAKE_INSTALL_PREFIX should be configured
-# correctly for Wireshark's system installation prefix.
-install(TARGETS d2gs
-	LIBRARY DESTINATION "${Wireshark_PLUGIN_LIBDIR}/epan" NAMELINK_SKIP
+install_plugin(d2gs epan)
+
+file(GLOB DISSECTOR_HEADERS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.h")
+CHECKAPI(
+	NAME
+	  d2gs
+	SWITCHES
+	  --group dissectors-prohibited
+	  --group dissectors-restricted
+	SOURCES
+	  ${DISSECTOR_SRC}
+	  ${DISSECTOR_HEADERS}
 )
 
-# This custom target installs the plugin to the plugin dir in WiresharkConfig.cmake.
-# It does not use CMAKE_INSTALL_PREFIX.
-add_custom_target(copy_plugin
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:d2gs> "${Wireshark_PLUGIN_INSTALL_DIR}/epan"
-	COMMENT "Installing plugin to: ${Wireshark_PLUGIN_INSTALL_DIR}/epan"
-)
-
-string(TOLOWER "${PROJECT_NAME}-${PROJECT_VERSION}" _pkgname)
-
-add_custom_target(package_prep
-	COMMAND ${CMAKE_COMMAND} -E make_directory  ${CMAKE_BINARY_DIR}/${_pkgname}
-	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/README $<TARGET_FILE:d2gs> ${CMAKE_BINARY_DIR}/${_pkgname}
-)
-
-add_custom_target(package
-	COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_BINARY_DIR}/${_pkgname}.tar.gz --format=gnutar -- ${CMAKE_BINARY_DIR}/${_pkgname}
-)
-add_dependencies(package package_prep)
-
-add_custom_target(package_zip
-	COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_BINARY_DIR}/${_pkgname}.zip --format=zip -- ${CMAKE_BINARY_DIR}/${_pkgname}
-)
-add_dependencies(package_zip package_prep)
+#
+# Editor modelines  -  https://www.wireshark.org/tools/modelines.html
+#
+# Local variables:
+# c-basic-offset: 8
+# tab-width: 8
+# indent-tabs-mode: t
+# End:
+#
+# vi: set shiftwidth=8 tabstop=8 noexpandtab:
+# :indentSize=8:tabSize=8:noTabs=false:
+#
