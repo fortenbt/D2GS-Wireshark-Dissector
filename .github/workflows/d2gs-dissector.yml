@@ -113,13 +113,13 @@ jobs:
           WS_BUILD=$(cygpath -u "${{ env.WS_BUILD }}")
           echo "Calling cmake from ${WS_BUILD}"
           cd ${WS_BUILD}
-          cmake -G Ninja -DENABLE_CCACHE=Yes -DFETCH_lua=Yes ..
+          cmake -G Ninja -DBUILD_wireshark=OFF -DBUILD_tshark=OFF ..
       - name: Build with Ninja
         run: |
           WS_BUILD=$(cygpath -u "${{ env.WS_BUILD }}")
           echo "Calling ninja from ${WS_BUILD}"
           cd ${WS_BUILD}
-          ninja
+          ninja d2gs
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
