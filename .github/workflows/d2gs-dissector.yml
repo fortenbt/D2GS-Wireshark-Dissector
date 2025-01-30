@@ -101,15 +101,13 @@ jobs:
           echo "Creating ${D2GS_WS_DIR} and copying CMakeListsCustom.txt to ${WS_SRC}"
           mkdir -p ${D2GS_WS_DIR}
           cp CMakeListsCustom.txt ${WS_SRC}
-          cp AUTHORS CMakeLists.txt ${D2GS_WS_DIR}
+          cp AUTHORS CMakeLists.txt CMakeLists.Windows.txt ${D2GS_WS_DIR}
           cp -r src ${D2GS_WS_DIR}
       - name: Create build directory
         run: |
           WS_BUILD=$(cygpath -u "${{ env.WS_BUILD }}")
           echo "Making the Wireshark build directory: ${WS_BUILD}"
           mkdir -p ${WS_BUILD}
-      - name: Debug PATH
-        run: echo $PATH
       - name: Configure Build
         run: |
           WS_BUILD=$(cygpath -u "${{ env.WS_BUILD }}")

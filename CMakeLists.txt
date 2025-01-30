@@ -7,46 +7,19 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 
-include(WiresharkPlugin)
+cmake_minimum_required(VERSION 3.12)
+cmake_policy(SET CMP0048 NEW)
 
-# Plugin name and version info (major minor micro extra)
-set_module_info(d2gs 0 0 4 0)
+project(D2GS VERSION 0.0.1 DESCRIPTION "Wireshark D2GS Plugin" LANGUAGES C)
 
-aux_source_directory(src/ DISSECTOR_SRC)
+# The build in Wireshark's source tree (Windows build) uses this WiresharkPlugin
+include(WiresharkPlugin OPTIONAL RESULT_VARIABLE in_ws)
 
-set(PLUGIN_FILES
-	plugin.c
-	${DISSECTOR_SRC}
-)
-
-set_source_files_properties(
-	${PLUGIN_FILES}
-	PROPERTIES
-	COMPILE_FLAGS "${WERROR_COMMON_FLAGS}"
-)
-
-register_plugin_files(plugin.c
-	plugin
-	${DISSECTOR_SRC}
-)
-
-add_wireshark_plugin_library(d2gs epan)
-
-target_link_libraries(d2gs epan)
-
-install_plugin(d2gs epan)
-
-file(GLOB DISSECTOR_HEADERS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.h")
-CHECKAPI(
-	NAME
-	  d2gs
-	SWITCHES
-	  --group dissectors-prohibited
-	  --group dissectors-restricted
-	SOURCES
-	  ${DISSECTOR_SRC}
-	  ${DISSECTOR_HEADERS}
-)
+if (in_ws)
+	include(CMakeLists.Windows.txt)
+else()
+	include(CMakeLists.Linux.txt)
+endif()
 
 #
 # Editor modelines  -  https://www.wireshark.org/tools/modelines.html
