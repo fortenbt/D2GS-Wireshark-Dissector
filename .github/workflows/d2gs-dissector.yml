@@ -1,0 +1,82 @@
+# This builds the D2GS Wireshark dissectors for Windows and Linux
+name: D2GS
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+  WS_SRC: ${{ github.workspace }}\wireshark
+  WS_BUILD: ${{ github.workspace }}\wireshark\build
+  D2GS_WS_DIR: ${{ github.workspace }}\wireshark\plugins\epan\d2gs
+
+jobs:
+  linux-build:
+    name: Build ${{ matrix.cfg.name }}-${{ matrix.cfg.os }}${{ matrix.cfg.extension }}
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        cfg:
+          - {name: 'packet-d2gs', os: 'debian12', prefix: 'linux', extension: '.so', architecture: 'x64'}
+          - {name: 'packet-d2gs', os: 'ubuntu24.04', prefix: 'linux', extension: '.so', architecture: 'x64'}
+
+    container:
+      image: fortenbt/wireshark-dev:${{ matrix.cfg.os }}
+
+    steps:
+    - name: Check out
+      uses: actions/checkout@v4
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -Wno-depcrecated
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.cfg.name }}-${{ matrix.cfg.os }}${{ matrix.cfg.extension }}
+        path: build/d2gs.so
+
+  windows-build:
+    name: Build ${{ matrix.cfg.name }}-${{ matrix.cfg.sys }}-${{ matrix.cfg.env }}.dll
+
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        cfg:
+          - { name: 'packet-d2gs', sys: 'mingw64', env: 'x86_64' }
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+      - name: Run the Wireshark Windows Docker image
+        run: docker run --isolation=process --name wireshark-build -dit --volume ${{ github.workspace }}:C:\src\wireshark\plugins\epan\d2gs fortenbt/windows-wireshark:4.4.3
+      - name: Copy our CMakeListsCustom.txt to wireshark src dir
+        run: docker cp CMakeListsCustom.txt wireshark-build:C:\src\wireshark
+      - name: Configure Build
+        run: docker exec wireshark-build C:\msys64\usr\bin\bash.exe -c 'MSYSTEM=MINGW64 source /etc/profile; cd /c/src/wireshark/build; cmake -G Ninja -DBUILD_wireshark=OFF -DBUILD_tshark=OFF ..'
+      - name: Build with Ninja
+        run: docker exec wireshark-build C:\msys64\usr\bin\bash.exe -c 'MSYSTEM=MINGW64 source /etc/profile; cd /c/src/wireshark/build; ninja d2gs'
+      - name: Collect Artifacts
+        run: |
+          mkdir _artifacts
+          docker cp wireshark-build:C:\src\wireshark\build\run\plugins\4.4\epan\d2gs.dll _artifacts\d2gs.dll
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.cfg.name }}-${{ matrix.cfg.sys }}-${{ matrix.cfg.env }}.dll
+          path: _artifacts\d2gs.dll
