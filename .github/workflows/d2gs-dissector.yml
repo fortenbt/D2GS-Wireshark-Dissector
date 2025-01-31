@@ -60,68 +60,23 @@ jobs:
         cfg:
           - { name: 'packet-d2gs', sys: 'mingw64', env: 'x86_64' }
 
-    defaults:
-      run:
-        shell: msys2 {0}
     steps:
-      - name: Set Up MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: ${{ matrix.cfg.sys }}
-          update: true
-          path-type: inherit
-          install: >-
-            mingw-w64-${{ matrix.cfg.env }}-c-ares
-            mingw-w64-${{ matrix.cfg.env }}-cmake
-            mingw-w64-${{ matrix.cfg.env }}-gcc
-            mingw-w64-${{ matrix.cfg.env }}-libgcrypt
-            mingw-w64-${{ matrix.cfg.env }}-minizip
-            mingw-w64-${{ matrix.cfg.env }}-nghttp2
-            mingw-w64-${{ matrix.cfg.env }}-qt6-5compat
-            mingw-w64-${{ matrix.cfg.env }}-qt6-base
-            mingw-w64-${{ matrix.cfg.env }}-qt6-multimedia
-            mingw-w64-${{ matrix.cfg.env }}-qt6-tools
-            mingw-w64-${{ matrix.cfg.env }}-toolchain
-            cpio
-            flex
-            git
-            make
-            patch
       - name: Check out
         uses: actions/checkout@v4
-      - name: Get Wireshark
-        run: |
-          WS_SRC=$(cygpath -u "${{ env.WS_SRC }}")
-          echo "Cloning Wireshark to ${WS_SRC}"
-          git clone --branch wireshark-4.4.3 https://github.com/wireshark/wireshark.git ${WS_SRC}
-      - name: Copy D2GS into Wireshark
-        run: |
-          D2GS_WS_DIR=$(cygpath -u "${{ env.D2GS_WS_DIR }}")
-          WS_SRC=$(cygpath -u "${{ env.WS_SRC }}")
-          echo "Creating ${D2GS_WS_DIR} and copying CMakeListsCustom.txt to ${WS_SRC}"
-          mkdir -p ${D2GS_WS_DIR}
-          cp CMakeListsCustom.txt ${WS_SRC}
-          cp AUTHORS CMakeLists.txt CMakeLists.Windows.txt ${D2GS_WS_DIR}
-          cp -r src ${D2GS_WS_DIR}
-      - name: Create build directory
-        run: |
-          WS_BUILD=$(cygpath -u "${{ env.WS_BUILD }}")
-          echo "Making the Wireshark build directory: ${WS_BUILD}"
-          mkdir -p ${WS_BUILD}
+      - name: Run the Wireshark Windows Docker image
+        run: docker run --isolation=process --name wireshark-build -dit --volume ${{ github.workspace }}:C:\src\wireshark\plugins\epan\d2gs fortenbt/windows-wireshark:4.4.3
+      - name: Copy our CMakeListsCustom.txt to wireshark src dir
+        run: docker cp CMakeListsCustom.txt wireshark-build:C:\src\wireshark
       - name: Configure Build
-        run: |
-          WS_BUILD=$(cygpath -u "${{ env.WS_BUILD }}")
-          echo "Calling cmake from ${WS_BUILD}"
-          cd ${WS_BUILD}
-          cmake -G Ninja -DBUILD_wireshark=OFF -DBUILD_tshark=OFF ..
+        run: docker exec wireshark-build C:\msys64\usr\bin\bash.exe -c 'MSYSTEM=MINGW64 source /etc/profile; cd /c/src/wireshark/build; cmake -G Ninja -DBUILD_wireshark=OFF -DBUILD_tshark=OFF ..'
       - name: Build with Ninja
+        run: docker exec wireshark-build C:\msys64\usr\bin\bash.exe -c 'MSYSTEM=MINGW64 source /etc/profile; cd /c/src/wireshark/build; ninja d2gs'
+      - name: Collect Artifacts
         run: |
-          WS_BUILD=$(cygpath -u "${{ env.WS_BUILD }}")
-          echo "Calling ninja from ${WS_BUILD}"
-          cd ${WS_BUILD}
-          ninja d2gs
+          mkdir _artifacts
+          docker cp wireshark-build:C:\src\wireshark\build\run\plugins\4.4\epan\d2gs.dll _artifacts\d2gs.dll
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.cfg.name }}-${{ matrix.cfg.sys }}-${{ matrix.cfg.env }}.dll
-          path: ${{ env.WS_BUILD }}\run\plugins\4.4\epan\d2gs.dll
+          path: _artifacts\d2gs.dll
